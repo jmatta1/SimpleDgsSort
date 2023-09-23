@@ -17,10 +17,10 @@
 
 int main(int argc, char* argv[])
 {
-        std::cout << "\nDgsSort\nDigital GammaSphere Sorter"
-           << "\n     Version: " << DGSSORT_VERSION
-           << "\n  Build Type: " << DGSSORT_BUILD
-           << "\n  Git Commit: " << DGSSORT_COMMIT_SHA << std::endl;
+    std::cout << "\nDgsSort\nDigital GammaSphere Sorter"
+              << "\n     Version: " << DGSSORT_VERSION
+              << "\n  Build Type: " << DGSSORT_BUILD
+              << "\n  Git Commit: " << DGSSORT_COMMIT_SHA << std::endl;
 
 
     return 0;
