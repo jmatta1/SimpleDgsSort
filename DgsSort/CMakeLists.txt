@@ -1,11 +1,17 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.20)
 
 ###########################################################
 ##  Setup Project
 ###########################################################
 project(DgsSort)
 
-execute_process(COMMAND "git" "rev-parse" "-q" "HEAD" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE DGSSORT_VERSION_SHA)
+execute_process(COMMAND "git" "rev-parse" "-q" "HEAD" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE DGSSORT_VERSION_SHA RESULT_VARIABLE RETVAL)
+
+if(NOT RETVAL EQUAL "0")
+  message(STATUS "The fatal error from git is not actually a problem, don't worry")
+endif(NOT RETVAL EQUAL "0")
+
 
 # The version number.
 set(DGSSORT_VERSION_MAJOR 0)
@@ -35,14 +41,13 @@ set(CMAKE_CXX_EXTENSIONS OFF) # whether we want the gnu / clang extensions
 ##  Setup External Library Dependencies
 ###########################################################
 # Add sub-directory for containing find module scripts that are not already provided
-# for instance, the libUSB people do not bother providing a FindLibUSB file, claiming
-# that cmake is a solution looking for a problem, ironically they provide xcode project
-# files, visual studio project files, and auto-tools bindings... oh well, screw them
-# I can put other files in here as well, like findTBB
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
+# add the root dependency
 find_package(ROOT REQUIRED COMPONENTS RIO Core Tree)
 message(STATUS "Found ROOT use file at: ${ROOT_USE_FILE}")
 include(${ROOT_USE_FILE})
+# add the zlib dependency
+find_package(ZLIB)
 
 ###########################################################
 ##  Setup Build Options
@@ -54,15 +59,6 @@ include(./cmake/BldOpt.cmake)
 ###########################################################
 include(./cmake/Analyzers.cmake)
 
-###########################################################
-##  Setup include directories
-###########################################################
-# Add this root directory as an include directory so that we can reference
-# our include files relative to it (less ../../../ business)
-include_directories(./src)
-# Add the generated file header directory in this way to allow files in the
-# utility directory to access the generated file as if it was in their directory
-include_directories("${PROJECT_BINARY_DIR}/src/BuildConfig")
 
 ###########################################################
 ##  Grab all the sub-directory file data
@@ -75,21 +71,39 @@ list(APPEND HDRS ${DGSSORT_HDRS})
 ##  Override Source Groups
 ###########################################################
 # So things look nice in QtCreator
-SOURCE_GROUP("" FILES ${SRCS} ${HDRS})
+source_group("" FILES ${SRCS} ${HDRS})
 
 ###########################################################
-##  Target Setup
+##  Target Creation
 ###########################################################
 # Add the executable and link it up
-add_executable(dgsSort ${SRCS} ${HDRS})
+add_executable(dgSort ${SRCS} ${HDRS})
+
+###########################################################
+##  Target Linking
+###########################################################
+# link in ROOT
+target_link_libraries(dgSort ROOT::Core ROOT::RIO ROOT::Hist ROOT::Tree)
+# link in zlib
+target_link_libraries(dgSort ZLIB::ZLIB)
+
+###########################################################
+##  Setup include directories
+###########################################################
+# Add this root directory as an include directory so that we can reference
+# our include files relative to it (less ../../../ business)
+target_include_directories(dgSort PRIVATE ./src)
+# Add the generated file header directory in this way to allow files in the
+# utility directory to access the generated file as if it was in their directory
+target_include_directories(dgSort PRIVATE "${PROJECT_BINARY_DIR}/src/BuildConfig")
+target_include_directories(dgSort SYSTEM PRIVATE ROOT::Core ROOT::RIO ROOT::Tree)
 
 if(CLANG_TIDY_EXE)
-  set_target_properties(dgsSort PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+  set_target_properties(dgSort PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 
 ###########################################################
 ##  Install setup
 ###########################################################
 get_filename_component(ABS_BIN_INSTALL_DIR "./.." ABSOLUTE)
-install(TARGETS dgsSort RUNTIME DESTINATION ${ABS_BIN_INSTALL_DIR})
-
+install(TARGETS dgSort RUNTIME DESTINATION ${ABS_BIN_INSTALL_DIR})

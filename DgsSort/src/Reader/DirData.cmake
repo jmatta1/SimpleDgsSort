@@ -6,4 +6,4 @@ list(APPEND DGSSORT_SRC_READER_SRCS
 
 # Header files from this directory
 list(APPEND DGSSORT_SRC_READER_HDRS 
-     ./src/Reader/DgsStructs.h)
+     ./src/Reader/DgsReader.h)
