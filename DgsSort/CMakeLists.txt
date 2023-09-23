@@ -40,7 +40,9 @@ set(CMAKE_CXX_EXTENSIONS OFF) # whether we want the gnu / clang extensions
 # files, visual studio project files, and auto-tools bindings... oh well, screw them
 # I can put other files in here as well, like findTBB
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-
+find_package(ROOT REQUIRED COMPONENTS RIO Core Tree)
+message(STATUS "Found ROOT use file at: ${ROOT_USE_FILE}")
+include(${ROOT_USE_FILE})
 
 ###########################################################
 ##  Setup Build Options
