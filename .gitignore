@@ -1,0 +1,9 @@
+# Specify filepatterns you want git to ignore.
+# Mac BS
+.DS_Store
+
+# QtCreator user preferences file
+CMakeLists.txt.user*
+
+# ignore build stuff
+build
