@@ -6,5 +6,11 @@
 CMakeLists.txt.user*
 
 # ignore build stuff
-build
+/build
 /dgSort
+
+# ignore raw data files
+/raw
+*.gz
+/root
+*.root

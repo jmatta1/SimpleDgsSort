@@ -8,6 +8,7 @@ Notes: Debian Based linux's include: Debian, Ubuntu, and Mint
     - Seriously, who does this stuff with Windoze?
 2. Ensure you have your basic build tools installed:
     - Linux (Debian Based): `sudo apt install build-essential`
+    - Mac: Install XCode from the App Store
 3. Ensure zlib is installed:
     - Linux (Debian Based): `sudo apt install zlib1g-dev`
     - Mac (with HomeBrew): `brew install zlib`

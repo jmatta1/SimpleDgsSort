@@ -41,21 +41,29 @@
  * Also, Repeat After Me:
  * MACROS ARE EVIL, AVOID UNLESS YOU HAVE NO CHOICE!!!!!
  ****************************************************************************************************************************/
-
 namespace Reader::DGS
 {
 
-static const uint32_t MaxDgsNum = 80;
+// event type identifiers
+static const uint32_t ChicoType       = 300;
+static const uint32_t GammasphereType = 14;
+static const uint32_t DfmaType        = 16;
+static const uint32_t FatimaType      = 20;
+static const uint32_t XarrayType      = 22;
+
+// array size setters
+static const uint32_t MaxDgsNum = 110;
 static const uint32_t MaxLaBrNum = 25;
 static const uint32_t MaxMbNum = 16;
 static const uint32_t MaxDssdNum = 16;
 static const uint32_t MbLen = 102;
 static const uint32_t GebHdrLenBytes = 16;
 static const uint32_t DgsTraceMaxLen = 1024;
-static const uint32_t HdrLenBytes = 52; // Torben's HDRLENINTS * 4 since I work with a byte buffer
+// Torben's HDRLENINTS * 4 since I work with a byte buffer
+static const uint32_t HdrLenBytes = 52;
 
 
-// masks and shifts
+// masks and shifts for reading raw binary
 // dword 0
 static const uint32_t ChanIdMask   = 0x0000000F;
 static const uint32_t ChanIdShft   = 0;
@@ -381,9 +389,10 @@ struct DssdEvent
     uint16_t type[MaxDssdNum]{0};
 };
 
-uint8_t* cacheAlignedAlloc(uint64_t & size);
-bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader* hdr, uint8_t*& evtBuff, uint64_t& bufferSize);
-int getEv(uint8_t* buffer, DgsEventNew* evt, DgsTrace* trc);
+bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader& hdr, uint8_t*& evtBuff, uint64_t& bufferSize);
+void getEv(uint8_t* buffer, DgsEventNew& evt, DgsTrace& trc, bool readTrace);
+
+void extractDirtyEvent(DirtyCoincidence& dc, DgsEvent const& evt);
 
 } // namespace Reader::DGS
 

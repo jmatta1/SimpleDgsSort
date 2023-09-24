@@ -13,15 +13,15 @@
 // includes for C system headers
 // includes for C++ system headers
 #include<iostream>
+#include<new>
 #include<string>
-#include<cstdlib>
 #include<cstdint>
 #include<cstring>
-#include<new>
 // includes from other libraries
 #include<zlib.h>
 // includes from DgsSort
 #include"Utility/EndianHandling.h"
+#include"Utility/Misc.h"
 
 namespace Reader::DGS
 {
@@ -56,26 +56,13 @@ namespace Reader::DGS
 //        exit(-1);
 //    }
 //    //fread(EventBuf,hdr->length,1,fp);
-//    gzread(fp, EventBuf, hdr->length);
+//    gzread(fp, EventBuf, hdr.length);
 //    return EventBuf;
 //}
 
-static const uint64_t CacheLineAlignment = 64;
-static const uint64_t CacheLineAlignmentMask = 63;
-
-uint8_t* cacheAlignedAlloc(uint64_t& size)
-{
-    // ensure the size is a multiple of 64 or make it so
-    // for powers of 2 bit mask is the same as modulus and much faster
-    if((size & CacheLineAlignmentMask) != 0)
-    {
-        size += CacheLineAlignment - (size & CacheLineAlignmentMask);
-    }
-    return static_cast<uint8_t*>(std::aligned_alloc(CacheLineAlignment, size));
-}
 
 // the event buffer passed in must always be allocated by CacheAlignedAlloc
-bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader* hdr, uint8_t*& evtBuff, uint64_t& bufferSize)
+bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*& evtBuff, uint64_t& bufferSize)
 {
     char headerBuffer[GebHdrLenBytes] = {0};
 
@@ -93,27 +80,27 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader* hdr, uint8_t*& 
     // now transfer things from the header buffer into the header
     // I know it looks cumbersom, but the compiler will mash this down to something very fast and clean
     size_t offset = 0;
-    std::memcpy(&hdr->type,   headerBuffer + offset, sizeof(uint32_t));
+    std::memcpy(&hdr.type,   headerBuffer + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    std::memcpy(&hdr->length, headerBuffer + offset, sizeof(int32_t));
+    std::memcpy(&hdr.length, headerBuffer + offset, sizeof(int32_t));
     offset += sizeof(int32_t);
-    std::memcpy(&hdr->type,   headerBuffer + offset, sizeof(uint64_t));
+    std::memcpy(&hdr.type,   headerBuffer + offset, sizeof(uint64_t));
 
     // now see if we need to (re)allocate the event buffer
-    if(hdr->length > bufferSize)
+    if(hdr.length > bufferSize)
     {
         std::free(evtBuff);
-        bufferSize = hdr->length;
-        evtBuff = cacheAlignedAlloc(bufferSize);
+        bufferSize = hdr.length;
+        evtBuff = Utility::cacheAlignedAlloc(bufferSize);
         if(evtBuff == nullptr)
         {
-            std::cout << "\007  ERROR: Could not malloc data buffer " << hdr->length << "%i bytes.\n" << std::flush;
+            std::cout << "\007  ERROR: Could not malloc data buffer " << hdr.length << "%i bytes.\n" << std::flush;
             throw std::bad_alloc{};
         }
     }
 
-    //fread(EventBuf,hdr->length,1,fp);
-    gzread(fp, static_cast<void*>(evtBuff), hdr->length);
+    //fread(EventBuf,hdr.length,1,fp);
+    gzread(fp, static_cast<void*>(evtBuff), hdr.length);
     //for safeties sake, zero the end of the buffer just in case
     return true;
 }
@@ -217,107 +204,109 @@ RetType msc(uint32_t val, uint32_t mask, uint32_t shift) // mask, shift, and cas
     return static_cast<RetType>(((val & mask) >> shift));
 }
 
-int getEv(uint8_t* buffer, DgsEventNew* evt, DgsTrace* trc)
+void getEv(uint8_t* buffer, DgsEventNew & evt, DgsTrace & trc, bool readTrace)
 {
     uint32_t val{0};
 
     // dword 0
     uint64_t offset = readAndSwapFromAddress(buffer, val);
-    evt->chan_id      = msc<uint16_t>(val, ChanIdMask,   ChanIdShft);
-    evt->board_id     = msc<uint16_t>(val, BoardIdMask,  BoardIdShft);
-    evt->event_length = msc<uint16_t>(val, EventLenMask, EventLenShft);
-    evt->geo_addr     = msc<uint16_t>(val, GeoAddrMask,  GeoAddrShft);
+    evt.chan_id      = msc<uint16_t>(val, ChanIdMask,   ChanIdShft);
+    evt.board_id     = msc<uint16_t>(val, BoardIdMask,  BoardIdShft);
+    evt.event_length = msc<uint16_t>(val, EventLenMask, EventLenShft);
+    evt.geo_addr     = msc<uint16_t>(val, GeoAddrMask,  GeoAddrShft);
 
     // dword 1
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->event_timestamp  = msc<uint64_t>(val, EvtTsLoMask, EvtTsLoShft);
+    evt.event_timestamp  = msc<uint64_t>(val, EvtTsLoMask, EvtTsLoShft);
 
     // dword 2
     offset += readAndSwapFromAddress(buffer + offset, val);
     // when adding, if the set bits in one value are zero in the other (like here)
     // then, in that case, |= (bit-wise or and assign) is equivalent to += (addition and assign)
     // AND it is (slightly) faster
-    evt->event_timestamp |= (msc<uint64_t>(val, EvtTsHiMask, EvtTsHiShft) << EvtTsHiUpShft);
+    evt.event_timestamp |= (msc<uint64_t>(val, EvtTsHiMask, EvtTsHiShft) << EvtTsHiUpShft);
 
     //dword 3
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->timestamp_match_flag = msc<uint16_t>(val, TsMatchFlgMask,  TsMatchFlgShft);
-    evt->external_disc_flag   = msc<uint16_t>(val, ExtDiscFlgMask,  ExtDiscFlgShft);
-    evt->peak_valid_flag      = msc<uint16_t>(val, PkValidFlgMask,  PkValidFlgShft);
-    evt->offset_flag          = msc<uint16_t>(val, OffsetFlgMask,   OffsetFlgShft);
-    evt->cfd_valid_flag       = msc<uint16_t>(val, CfdValidFlgMask, CfdValidFlgShft);
-    evt->sync_error_flag      = msc<uint16_t>(val, SyncErrFlgMask,  SyncErrFlgShft);
-    evt->general_error_flag   = msc<uint16_t>(val, GenErrFlgMask,   GenErrFlgShft);
-    evt->pileup_only_flag     = msc<uint16_t>(val, PileOnlyFlgMask, PileOnlyFlgShft);
-    evt->pileup_flag          = msc<uint16_t>(val, PileupFlgMask,   PileupFlgShft);
-    evt->last_disc_timestamp  = msc<uint64_t>(val, LstDscTsLoMask,  LstDscTsLoShft);
+    evt.timestamp_match_flag = msc<uint16_t>(val, TsMatchFlgMask,  TsMatchFlgShft);
+    evt.external_disc_flag   = msc<uint16_t>(val, ExtDiscFlgMask,  ExtDiscFlgShft);
+    evt.peak_valid_flag      = msc<uint16_t>(val, PkValidFlgMask,  PkValidFlgShft);
+    evt.offset_flag          = msc<uint16_t>(val, OffsetFlgMask,   OffsetFlgShft);
+    evt.cfd_valid_flag       = msc<uint16_t>(val, CfdValidFlgMask, CfdValidFlgShft);
+    evt.sync_error_flag      = msc<uint16_t>(val, SyncErrFlgMask,  SyncErrFlgShft);
+    evt.general_error_flag   = msc<uint16_t>(val, GenErrFlgMask,   GenErrFlgShft);
+    evt.pileup_only_flag     = msc<uint16_t>(val, PileOnlyFlgMask, PileOnlyFlgShft);
+    evt.pileup_flag          = msc<uint16_t>(val, PileupFlgMask,   PileupFlgShft);
+    evt.last_disc_timestamp  = msc<uint64_t>(val, LstDscTsLoMask,  LstDscTsLoShft);
 
     //dword 4
     offset += readAndSwapFromAddress(buffer + offset, val);
     // using bitwise or instead of add here too, since we can get away with it
-    evt->last_disc_timestamp |= (msc<uint64_t>(val, LstDscTsHiMask,  LstDscTsHiShft) << LstDscTsHiUpShft);
-    evt->cfd_sample_0         =  msc< int16_t>(val, CfdSmp0Mask,     CfdSmp0Shft);
+    evt.last_disc_timestamp |= (msc<uint64_t>(val, LstDscTsHiMask,  LstDscTsHiShft) << LstDscTsHiUpShft);
+    evt.cfd_sample_0         =  msc< int16_t>(val, CfdSmp0Mask,     CfdSmp0Shft);
 
     //dword 5
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->sampled_baseline = msc< int32_t>(val, SmpledBaseMask, SmpledBaseShft);
+    evt.sampled_baseline = msc< int32_t>(val, SmpledBaseMask, SmpledBaseShft);
 
     //dword 6
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->cfd_sample_1 = msc< int16_t>(val, CfdSmp1Mask, CfdSmp1Shft);
-    evt->cfd_sample_2 = msc< int16_t>(val, CfdSmp1Mask, CfdSmp1Shft);
+    evt.cfd_sample_1 = msc< int16_t>(val, CfdSmp1Mask, CfdSmp1Shft);
+    evt.cfd_sample_2 = msc< int16_t>(val, CfdSmp1Mask, CfdSmp1Shft);
 
     //dword 7
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->pre_rise_energy  = msc< int32_t>(val, PreRiseEnMask,    PreRiseEnShft);
-    evt->post_rise_energy = msc< int32_t>(val, PostRiseEnLoMask, PostRiseEnLoShft);
+    evt.pre_rise_energy  = msc< int32_t>(val, PreRiseEnMask,    PreRiseEnShft);
+    evt.post_rise_energy = msc< int32_t>(val, PostRiseEnLoMask, PostRiseEnLoShft);
 
     //dword 8
     offset += readAndSwapFromAddress(buffer + offset, val);
     // again, bitwise or works instead of addition here
-    evt->post_rise_energy |= (msc< int32_t>(val, PostRiseEnHiMask, PostRiseEnHiShft) << PostRiseEnHiUpShft);// NOLINT A bitwise operation with a signed type is safe here
-    evt->peak_timestamp    =  msc<uint64_t>(val, PkTsLoMask, PkTsLoShft);
+    evt.post_rise_energy |= (msc< int32_t>(val, PostRiseEnHiMask, PostRiseEnHiShft) << PostRiseEnHiUpShft);// NOLINT A bitwise operation with a signed type is safe here
+    evt.peak_timestamp    =  msc<uint64_t>(val, PkTsLoMask, PkTsLoShft);
 
     //dword 9
     offset += readAndSwapFromAddress(buffer + offset, val);
     // bitwise or works instead of addition here
-    evt->peak_timestamp   |= (msc<uint64_t>(val, PkTsHiMask, PkTsHiShft) << PkTsHiUpShft);
+    evt.peak_timestamp   |= (msc<uint64_t>(val, PkTsHiMask, PkTsHiShft) << PkTsHiUpShft);
 
     //dword 10
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->m3_end_sample   = msc<uint16_t>(val, M3EndSampMask, M3EndSampShft);
-    evt->m3_begin_sample = msc<uint16_t>(val, M3BegSampMask, M3BegSampShft);
+    evt.m3_end_sample   = msc<uint16_t>(val, M3EndSampMask, M3EndSampShft);
+    evt.m3_begin_sample = msc<uint16_t>(val, M3BegSampMask, M3BegSampShft);
 
 
     //dword 11
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->m2_begin_sample = msc<uint16_t>(val, M2BegSampMask, M2BegSampShft);
-    evt->m2_end_sample   = msc<uint16_t>(val, M2EndSampMask, M2EndSampShft);
+    evt.m2_begin_sample = msc<uint16_t>(val, M2BegSampMask, M2BegSampShft);
+    evt.m2_end_sample   = msc<uint16_t>(val, M2EndSampMask, M2EndSampShft);
 
     //dword 12
     offset += readAndSwapFromAddress(buffer + offset, val);
-    evt->peak_sample = msc<uint16_t>(val, PeakSampMask, PeakSampShft);
-    evt->base_sample = msc<uint16_t>(val, BaseSampMask, BaseSampShft);
+    evt.peak_sample = msc<uint16_t>(val, PeakSampMask, PeakSampShft);
+    evt.base_sample = msc<uint16_t>(val, BaseSampMask, BaseSampShft);
 
-    // trace dwords
-    trc->Len = 0;
-    const uint32_t bound1 = (sizeof(uint32_t) * evt->event_length);
-    const uint32_t bound2 = DgsTraceMaxLen - 1;
-    while((offset < bound1) && (trc->Len < bound2))
+    if(readTrace)
     {
-        offset += readAndSwapFromAddress(buffer + offset, val);
-        trc->trace[trc->Len]     = msc<int16_t>(val, LoSampleMask, LoSampleMShft);
-        trc->trace[trc->Len + 1] = msc<int16_t>(val, HiSampleMask, HiSampleMShft);
-        trc->Len += 2;
-    }
+        // trace dwords
+        trc.Len = 0;
+        const uint32_t bound1 = (sizeof(uint32_t) * evt.event_length);
+        const uint32_t bound2 = DgsTraceMaxLen - 1;
+        while((offset < bound1) && (trc.Len < bound2))
+        {
+            offset += readAndSwapFromAddress(buffer + offset, val);
+            trc.trace[trc.Len]     = msc<int16_t>(val, LoSampleMask, LoSampleMShft);
+            trc.trace[trc.Len + 1] = msc<int16_t>(val, HiSampleMask, HiSampleMShft);
+            trc.Len += 2;
+        }
 
-    // zero out additional samples torben does this with a loop... why?
-    // memset is your _friend_
-    if(trc->Len < DgsTraceMaxLen)
-    {
-        std::memset(trc->trace + trc->Len, 0, sizeof(int16_t)*(DgsTraceMaxLen - trc->Len));
+        // zero out additional samples torben does this with a loop... why?
+        // memset is your _friend_
+        if(trc.Len < DgsTraceMaxLen)
+        {
+            std::memset(trc.trace + trc.Len, 0, sizeof(int16_t)*(DgsTraceMaxLen - trc.Len));
+        }
     }
-    return 1;//why return at all? why not void??
 }
 
 
