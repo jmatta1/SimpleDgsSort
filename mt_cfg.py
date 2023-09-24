@@ -9,4 +9,4 @@ CONFIG["head_ext"] = ".h"
 CONFIG["base_dir"] = "DgsSort"
 CONFIG["base_subdirs"] = []
 CONFIG["copyright_holder"] = "??"
-CONFIG["exec_name"] = "dgsSort"
+CONFIG["exec_name"] = "dgSort"

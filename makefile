@@ -121,4 +121,4 @@ clean:
 #this runs clean and then removes the executable
 .PHONY: cleanall
 cleanall: clean
-	-rm -f dgsSort
+	-rm -f dgSort

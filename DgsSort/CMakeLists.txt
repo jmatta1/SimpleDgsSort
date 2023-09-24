@@ -92,7 +92,7 @@ target_link_libraries(dgSort ZLIB::ZLIB)
 ###########################################################
 # Add this root directory as an include directory so that we can reference
 # our include files relative to it (less ../../../ business)
-target_include_directories(dgSort PRIVATE ./src)
+target_include_directories(dgSort PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # Add the generated file header directory in this way to allow files in the
 # utility directory to access the generated file as if it was in their directory
 target_include_directories(dgSort PRIVATE "${PROJECT_BINARY_DIR}/src/BuildConfig")

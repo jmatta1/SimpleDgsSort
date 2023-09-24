@@ -3,13 +3,18 @@
 ###########################################################
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
-find_program(
-  CLANG_TIDY_EXE NAMES clang-tidy clang-tidy-12 clang-tidy-13 clang-tidy-14
-  DOC "Path to clang-tidy executable")
+find_program(CLANG_TIDY_EXE
+    NAMES clang-tidy clang-tidy-12 clang-tidy-13 clang-tidy-14
+    DOC "Path to clang-tidy executable")
 
-find_program(
-  RUN_CLANG_TIDY_PYTHON "${CMAKE_CURRENT_SOURCE_DIR}/tooling/run-clang-tidy.py"
-  DOC "Path to python script to run clang-tidy on build database")
+find_program(PYTHON3_EXECUTABLE NAMES
+    python3 python
+    DOC "Path to python2/3 executable")
+
+find_file(RUN_CLANG_TIDY_PYTHON
+    NAMES "run-clang-tidy.py"
+    PATHS "${PROJECT_SOURCE_DIR}/tooling/"
+    DOC "Path to python script to run clang-tidy on build database")
 
 list(APPEND CLANG_TIDY_CHECKS_LIST
      "abseil-*,"
@@ -62,5 +67,5 @@ list(APPEND RUN_CLANG_TIDY_BIN_ARGS
          -checks=${CLANG_TIDY_CHECKS})
 
 add_custom_target(tidy
-                  COMMAND ${RUN_CLANG_TIDY_PYTHON} ${RUN_CLANG_TIDY_BIN_ARGS}
+                  COMMAND ${PYTHON3_EXECUTABLE} ${RUN_CLANG_TIDY_PYTHON} ${RUN_CLANG_TIDY_BIN_ARGS}
                   COMMENT "Running `clang-tidy`")

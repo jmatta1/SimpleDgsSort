@@ -1359,7 +1359,7 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
     if proc.returncode != 0:
       failed_files.append(name)
     with lock:
-      sys.stdout.write(' '.join(invocation) + '\n' + output.decode('utf-8'))
+      sys.stdout.write(' '.join(invocation) + '\\n' + output.decode('utf-8'))
       if len(err) > 0:
         sys.stdout.flush()
         sys.stderr.write(err.decode('utf-8'))
@@ -1385,7 +1385,7 @@ def main():
                       'default')
   parser.add_argument('-config', default=None,
                       help='Specifies a configuration in YAML/JSON format: '
-                      '  -config="{Checks: \'*\', '
+                      '  -config="{Checks: \\'*\\', '
                       '                       CheckOptions: [{key: x, '
                       '                                       value: y}]}" '
                       'When the value is empty, clang-tidy will '
@@ -1493,7 +1493,7 @@ def main():
   except KeyboardInterrupt:
     # This is a sad hack. Unfortunately subprocess goes
     # bonkers with ctrl-c and we start forking merrily.
-    print('\nCtrl-C detected, goodbye.')
+    print('\\nCtrl-C detected, goodbye.')
     if tmpdir:
       shutil.rmtree(tmpdir)
     os.kill(0, 9)
@@ -1503,7 +1503,7 @@ def main():
     try:
       merge_replacement_files(tmpdir, args.export_fixes)
     except:
-      print('Error exporting fixes.\n', file=sys.stderr)
+      print('Error exporting fixes.\\n', file=sys.stderr)
       traceback.print_exc()
       return_code=1
 
@@ -1512,7 +1512,7 @@ def main():
     try:
       apply_fixes(args, tmpdir)
     except:
-      print('Error applying fixes.\n', file=sys.stderr)
+      print('Error applying fixes.\\n', file=sys.stderr)
       traceback.print_exc()
       return_code = 1
 
