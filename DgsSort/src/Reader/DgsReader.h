@@ -14,7 +14,9 @@
 // includes for C system headers
 // includes for C++ system headers
 #include<cstdint>
+#include<string>
 // includes from other libraries
+#include<zlib.h>
 // includes from DgsSort
 #include"Parameters/DgsParameters.h"
 
@@ -36,7 +38,7 @@
  *      I claim that I have written codes that read and process GS data faster than anything I have seen from him despite my more
  *      careful deserialization process that renders things platform independent.
  *
- * Repeat After Me:
+ * Also, Repeat After Me:
  * MACROS ARE EVIL, AVOID UNLESS YOU HAVE NO CHOICE!!!!!
  ****************************************************************************************************************************/
 
@@ -48,6 +50,111 @@ static const uint32_t MaxLaBrNum = 25;
 static const uint32_t MaxMbNum = 16;
 static const uint32_t MaxDssdNum = 16;
 static const uint32_t MbLen = 102;
+static const uint32_t GebHdrLenBytes = 16;
+static const uint32_t DgsTraceMaxLen = 1024;
+static const uint32_t HdrLenBytes = 52; // Torben's HDRLENINTS * 4 since I work with a byte buffer
+
+
+// masks and shifts
+// dword 0
+static const uint32_t ChanIdMask   = 0x0000000F;
+static const uint32_t ChanIdShft   = 0;
+static const uint32_t BoardIdMask  = 0x0000FFf0;
+static const uint32_t BoardIdShft  = 4;
+static const uint32_t EventLenMask = 0x07FF0000;
+static const uint32_t EventLenShft = 16;
+static const uint32_t GeoAddrMask  = 0xF8000000;
+static const uint32_t GeoAddrShft  = 27;
+
+// dword 1
+static const uint32_t EvtTsLoMask = 0xFFFFFFFF;
+static const uint32_t EvtTsLoShft = 0;
+
+// dword 2
+static const uint32_t EvtTsHiMask = 0x0000FFFF;
+static const uint32_t EvtTsHiShft = 0;
+static const uint32_t EvtTsHiUpShft = 32;
+
+// dword 3
+static const uint32_t TsMatchFlgMask = 0x00000080;
+static const uint32_t TsMatchFlgShft = 7;
+static const uint32_t ExtDiscFlgMask = 0x00000100;
+static const uint32_t ExtDiscFlgShft = 8;
+static const uint32_t PkValidFlgMask = 0x00000200;
+static const uint32_t PkValidFlgShft = 9;
+static const uint32_t OffsetFlgMask = 0x00000400;
+static const uint32_t OffsetFlgShft = 10;
+static const uint32_t CfdValidFlgMask = 0x00000800;
+static const uint32_t CfdValidFlgShft = 11;
+static const uint32_t SyncErrFlgMask = 0x00001000;
+static const uint32_t SyncErrFlgShft = 12;
+static const uint32_t GenErrFlgMask = 0x00002000;
+static const uint32_t GenErrFlgShft = 13;
+static const uint32_t PileOnlyFlgMask = 0x00004000;
+static const uint32_t PileOnlyFlgShft = 14;
+static const uint32_t PileupFlgMask = 0x00008000;
+static const uint32_t PileupFlgShft = 15;
+static const uint32_t LstDscTsLoMask = 0xffff0000;
+static const uint32_t LstDscTsLoShft = 0;
+
+//dword 4
+static const uint32_t LstDscTsHiMask = 0xffff0000;
+static const uint32_t LstDscTsHiShft = 0;
+static const uint32_t LstDscTsHiUpShft = 16;
+static const uint32_t CfdSmp0Mask = 0x3fff0000;
+static const uint32_t CfdSmp0Shft = 16;
+
+//dword 5
+static const uint32_t SmpledBaseMask = 0x00ffffff;
+static const uint32_t SmpledBaseShft = 0;
+
+//dword 6
+static const uint32_t CfdSmp1Mask = 0x00003fff;
+static const uint32_t CfdSmp1Shft = 0;
+static const uint32_t CfdSmp2Mask = 0x3fff0000;
+static const uint32_t CfdSmp2Shft = 16;
+
+//dword 7
+static const uint32_t PreRiseEnMask = 0x00ffffff;
+static const uint32_t PreRiseEnShft = 0;
+static const uint32_t PostRiseEnLoMask = 0xff000000;
+static const uint32_t PostRiseEnLoShft = 24;
+
+//dword 8
+static const uint32_t PostRiseEnHiMask = 0x0000ffff;
+static const uint32_t PostRiseEnHiShft = 0;
+static const uint32_t PostRiseEnHiUpShft = 8;
+static const uint32_t PkTsLoMask = 0xffff0000;
+static const uint32_t PkTsLoShft = 16;
+
+//dword 9
+static const uint32_t PkTsHiMask = 0x0000ffff;
+static const uint32_t PkTsHiShft = 0;
+static const uint32_t PkTsHiUpShft = 16;
+
+//dword 10
+static const uint32_t M3EndSampMask = 0x00003fff;
+static const uint32_t M3EndSampShft = 0;
+static const uint32_t M3BegSampMask = 0x3fff0000;
+static const uint32_t M3BegSampShft = 16;
+
+//dword 11
+static const uint32_t M2BegSampMask = 0x00003fff;
+static const uint32_t M2BegSampShft = 0;
+static const uint32_t M2EndSampMask = 0x3fff0000;
+static const uint32_t M2EndSampShft = 16;
+
+//dword 12
+static const uint32_t PeakSampMask = 0x00003fff;
+static const uint32_t PeakSampShft = 0;
+static const uint32_t BaseSampMask = 0x3fff0000;
+static const uint32_t BaseSampShft = 16;
+
+// trace dwords
+static const uint32_t LoSampleMask = 0x00003FFF;
+static const uint32_t LoSampleMShft = 0;
+static const uint32_t HiSampleMask = 0x3FFF0000;
+static const uint32_t HiSampleMShft = 16;
 
 /* GT event */
 /* __contains both raw and */
@@ -132,11 +239,11 @@ struct Particle
 {
     int32_t  id{0};
     uint32_t t{0};
-    float    m{0.0f};
-    float    fthetaL{0.0f};
-    float    fphiL{0.0f};
-    float    fthetaR{0.0f};
-    float    fphiR{0.0f};
+    float    m{0.0F};
+    float    fthetaL{0.0F};
+    float    fphiL{0.0F};
+    float    fthetaR{0.0F};
+    float    fphiR{0.0F};
     int32_t  eL{0};
     int32_t  eR{0};
     int32_t  rf{0};
@@ -145,22 +252,22 @@ struct Particle
 struct Gamma
 {
     uint64_t t{0};
-    float    e{0.0f};
+    float    e{0.0F};
     uint16_t id{0};
-    bool     BGO{0};
-    bool     GE{0};
-    bool     Compton{0};
+    bool     BGO{false};
+    bool     GE{false};
+    bool     Compton{false};
 };
 
 struct DgsBuff
 {
-    unsigned int* DGSEventBuf[20]{0};
+    unsigned int* DGSEventBuf[20]{nullptr};
 };
 
 struct DgsBase
 {
-    float    base_sum[Params::DGS::NumGsGeDet + 1]{0.0f};
-    float    n_base[Params::DGS::NumGsGeDet + 1]{0.0f};
+    float    base_sum[Params::DGS::NumGsGeDet + 1]{0.0F};
+    float    n_base[Params::DGS::NumGsGeDet + 1]{0.0F};
 };
 
 struct GebHeader
@@ -182,7 +289,7 @@ struct CleanCoincidence
     double   tPrompt{0.0};
     uint64_t t[MaxDgsNum]{0};
     uint16_t id[MaxDgsNum]{0};
-    float    e[MaxDgsNum]{0.0f};
+    float    e[MaxDgsNum]{0.0F};
 };
 
 struct Fatima
@@ -227,8 +334,8 @@ struct DssdRaw
 {
     uint16_t id{0};
     uint16_t type{0};   //DE RING:1;DE SECTOR:2;E RING:3;E SECTOR:4
-    float    e{0.0f};
-    float    angle{0.0f};
+    float    e{0.0F};
+    float    angle{0.0F};
     uint64_t ts{0};
 };
 
@@ -244,13 +351,13 @@ struct DfmaEvent
 
 struct FocalPlane
 {
-    float    x{0.0f};
-    float    y{0.0f};
-    float    tgppac{0.0f};
-    float    ppacde{0.0f};
-    float    de1{0.0f};
-    float    de2{0.0f};
-    float    etot{0.0f};
+    float    x{0.0F};
+    float    y{0.0F};
+    float    tgppac{0.0F};
+    float    ppacde{0.0F};
+    float    de1{0.0F};
+    float    de2{0.0F};
+    float    etot{0.0F};
     uint64_t ts{0};
     bool     FPTrue{false};
 };
@@ -260,8 +367,8 @@ struct MbEvent
     uint16_t nMB{0};
     uint16_t id[MaxMbNum]{0};
     uint64_t ts[MaxMbNum]{0};
-    float    etot[MaxMbNum]{0.0f};
-    float    etail[MaxMbNum]{0.0f};
+    float    etot[MaxMbNum]{0.0F};
+    float    etail[MaxMbNum]{0.0F};
 };
 
 
@@ -269,10 +376,14 @@ struct DssdEvent
 {
     uint16_t nDSSD{0};
     uint64_t ts[MaxDssdNum]{0};
-    float    e[MaxDssdNum]{0.0f};
+    float    e[MaxDssdNum]{0.0F};
     uint16_t id[MaxDssdNum]{0};
     uint16_t type[MaxDssdNum]{0};
 };
+
+uint8_t* cacheAlignedAlloc(uint64_t & size);
+bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader* hdr, uint8_t*& evtBuff, uint64_t& bufferSize);
+int getEv(uint8_t* buffer, DgsEventNew* evt, DgsTrace* trc);
 
 } // namespace Reader::DGS
 
