@@ -4,7 +4,7 @@
 ** @author James Till Matta, and Akaa Daniel Ayageakaa et al
 ** @date 23 Sep, 2023
 **
-** @copyright Copyright (C) 2023 ??
+** @copyright Copyright (C) 2023 Oak Ridge National Laboratory
 **
 ********************************************************************************
 *******************************************************************************/
