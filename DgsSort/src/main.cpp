@@ -20,7 +20,6 @@
 #include"Utility/CmdLine.h"
 #include"DgsSortBuildConfig.h"
 #include"Output/HistWriter.h"
-#include"Utility/Misc.h"
 #include"Reader/DgsReader.h"
 #include"Reader/Calibrator.h"
 #include"Threads/BufferQueue.h"
@@ -28,7 +27,8 @@
 
 static const int64_t TimeStampOverlap = 100;
 static const uint64_t ReportIntMult = 8;
-static const uint64_t ReportInterval = ReportIntMult * 1048576;
+static const uint64_t MegaMultiplier = 1048576;
+static const uint64_t ReportInterval = ReportIntMult * MegaMultiplier;
 static const uint64_t ReportIntMask = ReportInterval - 1;
 
 int main(int argc, char* argv[])
@@ -161,6 +161,11 @@ int main(int argc, char* argv[])
                         // we did! increment histograms
                         writer->incrementCleanEvents(clean);
                     }
+                    tsEarly = header.timestamp;
+                    tsLate = header.timestamp;
+                    dirty.nDirty = 0;
+                    Reader::DGS::extractDirtyCoinsFromEvt(dirty, event, cal, ad);
+
                 }
                 ++gsEventCount;
                 // the previous author use modulus here. if you are working with powers of 2
@@ -208,8 +213,9 @@ int main(int argc, char* argv[])
     // delete the writer (forcing the writing of everything to the file)
     delete writer;
     // output some information then tell the world we are done
-    std::cout << "Processed: " << gsEventCount << " - (" << ReportIntMult * outputCount << " M + "
-              << (gsEventCount - (outputCount * ReportInterval)) <<" ) Events\n" << std::flush;
+    std::cout << "Processed: " << gsEventCount << " - ("
+              << ReportIntMult * outputCount + static_cast<double>(gsEventCount - (outputCount * ReportInterval))/MegaMultiplier
+              <<" ) Events\n" << std::flush;
     std::cout << "Done!\n" << std::flush;
     // the destructor for the input file will trip on return and close the file
     return 0;
