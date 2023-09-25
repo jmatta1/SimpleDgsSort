@@ -147,6 +147,25 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
 HistWriter::~HistWriter()
 {
     using Params::DGS::NumRings;
+    // these calls are necessary because when using AddBinContent
+    // Root comes to think the histograms are empty and ResetStats forces it
+    // to realize that is not the case
+    ggrClean->ResetStats();
+    gringdop->ResetStats();
+    gbase->ResetStats();
+    gdt->ResetStats();
+    gring->ResetStats();
+    ggDirty->ResetStats();
+    gDirty->ResetStats();
+    gClean->ResetStats();
+    ggClean->ResetStats();
+    dtGeGe->ResetStats();
+    dtGeBGO->ResetStats();
+    gRate->ResetStats();
+    for(int i = NumRings-1; i > -1; --i)
+    {
+        ringMatrices[i]->ResetStats();
+    }
     // first save all the histograms currently in memory
     outFile->Write(nullptr, TObject::kOverwrite);
     // make sure they're all on the disk
