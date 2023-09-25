@@ -79,14 +79,15 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*&
     }
 
     // now transfer things from the header buffer into the header
-    // I know it looks cumbersom, but the compiler will mash this down to something very fast and clean
+    // I know it looks cumbersome, but the compiler will mash this down to something very fast and clean
     size_t offset = 0;
     std::memcpy(&hdr.type,   headerBuffer + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
     std::memcpy(&hdr.length, headerBuffer + offset, sizeof(int32_t));
     offset += sizeof(int32_t);
-    std::memcpy(&hdr.type,   headerBuffer + offset, sizeof(uint64_t));
+    std::memcpy(&hdr.timestamp,   headerBuffer + offset, sizeof(uint64_t));
 
+//    std::cout << hdr.type << ", " << hdr.length << ", " << hdr.timestamp << "\n";
     // now see if we need to (re)allocate the event buffer
     if(hdr.length > bufferSize)
     {
@@ -95,9 +96,10 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*&
         evtBuff = Utility::cacheAlignedAlloc(bufferSize);
         if(evtBuff == nullptr)
         {
-            std::cout << "\007  ERROR: Could not malloc data buffer " << hdr.length << "%i bytes.\n" << std::flush;
+            std::cout << "\007  ERROR: Could not malloc data buffer " << hdr.length << " bytes.\n" << std::flush;
             throw std::bad_alloc{};
         }
+        std::cout << "New event buffer size is: " << bufferSize << "\n";
     }
 
     //fread(EventBuf,hdr.length,1,fp);
@@ -188,9 +190,6 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*&
 //    return 1;
 //}
 
-
-
-
 static size_t readAndSwapFromAddress(uint8_t* addr, uint32_t& val)
 {
     memcpy(&val, addr, sizeof(val));
@@ -201,7 +200,6 @@ static size_t readAndSwapFromAddress(uint8_t* addr, uint32_t& val)
 template<typename RetType>
 RetType msc(uint32_t val, uint32_t mask, uint32_t shift) // mask, shift, and cast
 {
-
     return static_cast<RetType>(((val & mask) >> shift));
 }
 

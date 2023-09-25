@@ -26,9 +26,9 @@ Calibrator::Calibrator(const std::string & calFileName, double recoilBeta)
     std::ifstream calFile(calFileName.c_str());
     std::string line;
     std::getline(calFile, line, '\n');
-    std::cout << line;
+//    std::cout << line << '\n';
     std::getline(calFile, line, '\n');
-    std::cout << line;
+//    std::cout << line << '\n';
     unsigned detNum;
     double tempOff;
     double tempGain;
@@ -43,9 +43,9 @@ Calibrator::Calibrator(const std::string & calFileName, double recoilBeta)
         invPoleZero[detNum - 1] = 1.0 - poleZero[detNum - 1];
         disabled[detNum - 1] = (tempDisabled != 0);
         poleZeroBase[detNum - 1] = 0.0;
-        std::cout << std::setw(6) << detNum << std::setw(15) << offsets[detNum - 1] << std::setw(15)
-                  << gains[detNum - 1] << std::setw(15) << tempPoleZero
-                  << std::setw(15) << tempDisabled << "\n" << std::flush;
+//        std::cout << std::setw(6) << detNum << std::setw(15) << offsets[detNum - 1] << std::setw(15)
+//                  << gains[detNum - 1] << std::setw(15) << tempPoleZero
+//                  << std::setw(15) << tempDisabled << "\n" << std::flush;
     }
     calFile.close();
     // now calculate the doppler corrections
