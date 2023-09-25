@@ -55,7 +55,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     dtGeBGO = outFile->Get<TH2I>("dtGe_BGO");
-    if(gRate == nullptr)
+    if(dtGeBGO == nullptr)
     {
         dtGeBGO = new TH2I("dtGe_BGO", "Ge-BGO & BGO-BGO Gamma Coincidence Times vs Det Number",
                             DtGeBgoX.nb, DtGeBgoX.lo, DtGeBgoX.hi,
@@ -63,7 +63,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     dtGeGe = outFile->Get<TH2I>("dtGe_Ge");
-    if(gRate == nullptr)
+    if(dtGeGe == nullptr)
     {
         dtGeGe = new TH2I("dtGe_Ge", "Ge-Ge Gamma Coincidence Times vs Det Number",
                            DtGeGeX.nb, DtGeGeX.lo, DtGeGeX.hi,
@@ -71,7 +71,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     ggClean = outFile->Get<TH2I>("ggClean");
-    if(gRate == nullptr)
+    if(ggClean == nullptr)
     {
         ggClean = new TH2I("ggClean", "Clean Gamma-Gamma Coincidence Matrix",
                            GgCleanBoth.nb, GgCleanBoth.lo, GgCleanBoth.hi,
@@ -79,7 +79,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     gClean = outFile->Get<TH2I>("gClean");
-    if(gRate == nullptr)
+    if(gClean == nullptr)
     {
         gClean = new TH2I("gClean", "Per Detector Clean Gamma Spectra",
                           GCleanX.nb, GCleanX.lo, GCleanX.hi,
@@ -87,7 +87,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     gDirty = outFile->Get<TH2I>("gDirty");
-    if(gRate == nullptr)
+    if(gDirty == nullptr)
     {
         gDirty = new TH2I("gDirty", "Per Detector Dirty Gamma Spectra",
                           GDirtyX.nb, GDirtyX.lo, GDirtyX.hi,
@@ -95,7 +95,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     ggDirty = outFile->Get<TH2I>("ggDirty");
-    if(gRate == nullptr)
+    if(ggDirty == nullptr)
     {
         ggDirty = new TH2I("ggDirty", "Dirty Gamma-Gamma Coincidence Matrix",
                            GgDirtyBoth.nb, GgDirtyBoth.lo, GgDirtyBoth.hi,
@@ -103,7 +103,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     gring = outFile->Get<TH2I>("gring");
-    if(gRate == nullptr)
+    if(gring == nullptr)
     {
         gring = new TH2I("gring", "Per Ring (Y) Un-Doppler Corrected Clean + Dirty Energy (X)",
                          GRingX.nb, GRingX.lo, GRingX.hi,
@@ -111,7 +111,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     gdt = outFile->Get<TH2I>("gdt");
-    if(gRate == nullptr)
+    if(gdt == nullptr)
     {
         gdt = new TH2I("gdt", "Delta Event Discriminator Time (Y) vs Gamma Energy (X)",
                        GdtX.nb, GdtX.lo, GdtX.hi,
@@ -119,7 +119,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     gbase = outFile->Get<TH2I>("gbase");
-    if(gRate == nullptr)
+    if(gbase == nullptr)
     {
         gbase = new TH2I("gbase", "Baseline Correction Scaled by ID(Y-Axis) vs. Event Time From File Start (X-Axis)",
                          GbaseX.nb, GbaseX.lo, GbaseX.hi,
@@ -127,7 +127,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     gringdop = outFile->Get<TH2I>("gringdop");
-    if(gRate == nullptr)
+    if(gringdop == nullptr)
     {
         gringdop = new TH2I("gringdop", "Doppler Corrected Per Ring Clean Energy Spectra",
                             GringDopX.nb, GringDopX.lo, GringDopX.hi,
@@ -135,7 +135,7 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
     }
 
     ggrClean = outFile->Get<TH3I>("ggrClean");
-    if(gRate == nullptr)
+    if(ggrClean == nullptr)
     {
         ggrClean = new TH3I("ggrClean", "Clean Ring Number (z) vs Ring Energy (y) vs All Energy (x)",
                             GgRingXY.nb, GgRingXY.lo, GgRingXY.hi,
@@ -147,25 +147,6 @@ HistWriter::HistWriter(const std::string & outFileName, std::string const& fileO
 HistWriter::~HistWriter()
 {
     using Params::DGS::NumRings;
-    // these calls are necessary because when using AddBinContent
-    // Root comes to think the histograms are empty and ResetStats forces it
-    // to realize that is not the case
-    ggrClean->ResetStats();
-    gringdop->ResetStats();
-    gbase->ResetStats();
-    gdt->ResetStats();
-    gring->ResetStats();
-    ggDirty->ResetStats();
-    gDirty->ResetStats();
-    gClean->ResetStats();
-    ggClean->ResetStats();
-    dtGeGe->ResetStats();
-    dtGeBGO->ResetStats();
-    gRate->ResetStats();
-    for(int i = NumRings-1; i > -1; --i)
-    {
-        ringMatrices[i]->ResetStats();
-    }
     // first save all the histograms currently in memory
     outFile->Write(nullptr, TObject::kOverwrite);
     // make sure they're all on the disk
@@ -229,14 +210,14 @@ void HistWriter::incrementCleanEvents(CleanCoin const& cc)
         bin = GringDopBin(cc.e[i], detIring);
         gringdop->AddBinContent(bin, 1);
 
-        for(unsigned j=i+1; j<cc.nClean; ++i)
+        for(unsigned j=i+1; j<cc.nClean; ++j)
         {
             bin = GgCleanBin(cc.e[i], cc.e[j]);
             ggClean->AddBinContent(bin, 1);
             bin = GgCleanBin(cc.e[j], cc.e[i]);
             ggClean->AddBinContent(bin, 1);
 
-            int detJring = Params::DGS::DetRings[cc.id[i]];
+            int detJring = Params::DGS::DetRings[cc.id[j]];
 
             bin = RingMatBin(cc.e[j], cc.e[i]);
             ringMatrices[detIring]->AddBinContent(bin, 1);
