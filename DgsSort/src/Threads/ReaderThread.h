@@ -24,6 +24,7 @@
 namespace Threading
 {
 
+static const uint64_t GzipInternalBufferSize = 64*1048576;
 static const uint64_t ReadSizeInBytes = 32 * 1048576;
 static const uint64_t BufferOversize = 16384; // must be larger than 4k and a multiple of 64
 static const uint64_t TotalBufferSize = ReadSizeInBytes + BufferOversize;

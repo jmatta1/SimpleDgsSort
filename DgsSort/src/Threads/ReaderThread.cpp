@@ -22,6 +22,7 @@ ReaderThread::ReaderThread(const std::string & inFileName, QueueType & queue)
     :outQueue(queue)
 {
     inputFile = gzopen(inFileName.c_str(), "rb");
+    gzbuffer(inputFile, GzipInternalBufferSize);
 }
 
 ReaderThread::~ReaderThread()
