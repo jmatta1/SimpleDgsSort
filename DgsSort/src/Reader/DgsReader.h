@@ -59,7 +59,7 @@ static const uint32_t MaxDssdNum = 16;
 static const uint32_t MbLen = 102;
 static const uint32_t GebHdrLenBytes = 16;
 static const uint32_t DgsTraceMaxLen = 1024;
-// Torben's HDRLENINTS * 4 since I work with a byte buffer
+// the previous author's HDRLENINTS * 4 since I work with a byte buffer
 static const uint32_t HdrLenBytes = 52;
 
 

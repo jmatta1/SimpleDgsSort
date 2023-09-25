@@ -132,15 +132,21 @@ int main(int argc, char* argv[])
             if((gsEventCount & ReportIntMask) == 0)
             {
                 ++outputCount;
-                std::cout << "Processed: " << gsEventCount << " - (" << outputCount << " M) Events\n" << std::endl;
+                std::cout << "Processed: " << gsEventCount << " - (" << outputCount << " M) Events\n" << std::flush;
             }
         }
 
     }
-    // delete the writer (forcing the output of everything
+    //free the buffer
+    std::free(eventBuffer);
+    // delete the writer (forcing the writing of everything to the file)
     delete writer;
     //close the input file
     gzclose(inputFile);
+    // output some information then tell the world we are done
+    std::cout << "The event buffer started at 64 bytes, at the end it was: " << bufferSize << " bytes\n" << std::flush;
+    std::cout << "Processed: " << gsEventCount << " - (" << outputCount << " M + "
+              << (gsEventCount - (outputCount * ReportInterval)) <<" ) Events\n" << std::flush;
     std::cout << "Done!\n" << std::flush;
     return 0;
 }

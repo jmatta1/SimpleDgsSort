@@ -362,14 +362,58 @@ bool extractDirtyCoinsFromEvt(DirtyCoincidence& dc, DgsEventNew const& evt, Cali
 
 void extractCleanCoinsFromDirty(DirtyCoincidence& dc, CleanCoincidence& cc)
 {
+    //TODO finish writing compton marking and clean event building
     cc.nClean = 0;
-    double dt, tsum, nprompt;
     for(unsigned i=0; i<dc.nDirty; ++i)
     {
         for(unsigned j=i+1; j<dc.nDirty; ++j)
         {
-
+            uint64_t dt = dc.gamma[i].t - dc.gamma[j].t;
+            if(dc.gamma[i].id == dc.gamma[j].id)
+            {
+                if(((dt < 0) ? -dt : dt) < Params::DGS::ComptonWindowTime)
+                {
+                    dc.gamma[i].Compton = true;
+                    dc.gamma[j].Compton = true;
+                }
+            }
         }
+        // at this point gamma[i] has been checked against every other gamma-ray so it is ok
+        // to add it to the clean events now
+        if(dc.gamma[i].GE && !dc.gamma[i].Compton && dc.gamma[i].e > Params::DGS::LowEnergyThreshold)
+        {
+            cc.id[cc.nClean] = dc.gamma[i].id;
+            cc.t[cc.nClean] = dc.gamma[i].t;
+            cc.e[cc.nClean] = dc.gamma[i].e;
+            ++(cc.nClean);
+        }
+    }
+
+    uint64_t tsum = 0, nprompt = 0, tEarly = UINT64_MAX;
+    for(unsigned i=0; i<cc.nClean; ++i)
+    {
+        if(cc.t[i] < tEarly)
+        {
+            tEarly = cc.t[i];
+        }
+        for(unsigned j=i+1; j<cc.nClean; ++j)
+        {
+            uint64_t dt = cc.t[i] - cc.t[j];
+            if(((dt < 0) ? -dt : dt) < Params::DGS::PromptCoincidentWindowTime)
+            {
+                tsum += cc.t[i];
+                tsum += cc.t[j];
+                nprompt += 2;
+            }
+        }
+    }
+    if(nprompt > 0)
+    {
+        cc.tPrompt = static_cast<double>(tsum)/static_cast<double>(nprompt);
+    }
+    else
+    {
+        cc.tPrompt = tEarly;
     }
 }
 

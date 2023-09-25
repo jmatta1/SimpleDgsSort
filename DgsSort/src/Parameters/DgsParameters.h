@@ -26,7 +26,9 @@ static const uint32_t NumRings{17};
 
 static const double TsToSeconds{1.0e-8};
 static const double TsToMicroSeconds{1.0e-2};
-
+static const double LowEnergyThreshold{15.0};
+static const uint64_t PromptCoincidentWindowTime{30}; // samples (300ns)
+static const uint64_t ComptonWindowTime{30}; // samples (300ns)
 
 static const uint16_t GsMapBoardOffset{101};
 
