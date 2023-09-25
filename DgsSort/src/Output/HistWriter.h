@@ -1,10 +1,10 @@
 /***************************************************************************//**
 ********************************************************************************
 **
-** @author James Till Matta, and Akaa Daniel Ayageakaa et al
+** @author James Till Matta
 ** @date 24 Sep, 2023
 **
-** @copyright Copyright (C) 2023 ??
+** @copyright Copyright (C) 2023 James Till Matta
 **
 ********************************************************************************
 *******************************************************************************/
@@ -16,14 +16,15 @@
 #include<string>
 // includes from other libraries
 #include<TFile.h>
-#include<TH1F.h>
-#include<TH2F.h>
-#include<TH3F.h>
+#include<TH2I.h>
+#include<TH3I.h>
 // includes from DgsSort
 #include"Reader/DgsReader.h"
 
 namespace Output
 {
+
+//TODO write constants with binning parameters for histograms for faster bin lookup
 
 /*!
 * @brief
@@ -32,29 +33,31 @@ class HistWriter
 {
     using CleanCoin = Reader::DGS::CleanCoincidence;
     using DirtyCoin = Reader::DGS::DirtyCoincidence;
-    using DgsEvent = Reader::DGS::DgsEventNew;
+    using AgnosticData = Reader::DGS::AgnosticSinglesInfo;
 public:
     HistWriter(std::string const& outFileName, std::string const& fileOption);
     ~HistWriter();
 
-    void incrementCleanEvent(CleanCoin * evt);
-    void incrementDirtyEvent(DirtyCoin * evt);
+    // increments the data that is agnostic to cleanliness or dirtiness
+    void incrementAgnosticSinglesData(AgnosticData const& ad);
+    void incrementCleanEvents(CleanCoin const& evt);
+    void incrementDirtyEvents(DirtyCoin const& evt);
 
 private:
     TFile* outFile;
-    TH2F* ringMatrices[17]{nullptr};
-    TH2F* gRate{nullptr};
-    TH2F* dtGe_BGO{nullptr};
-    TH2F* dtGe_Ge{nullptr};
-    TH2F* ggClean{nullptr};
-    TH2F* gClean{nullptr};
-    TH2F* gDirty{nullptr};
-    TH2F* ggDirty{nullptr};
-    TH2F* gring{nullptr};
-    TH2F* gdt{nullptr};
-    TH2F* gbase{nullptr};
-    TH2F* gringdop{nullptr};
-    TH3F* ggrClean{nullptr};
+    TH2I* ringMatrices[17]{nullptr};
+    TH2I* gRate{nullptr};
+    TH2I* dtGe_BGO{nullptr};
+    TH2I* dtGe_Ge{nullptr};
+    TH2I* ggClean{nullptr};
+    TH2I* gClean{nullptr};
+    TH2I* gDirty{nullptr};
+    TH2I* ggDirty{nullptr};
+    TH2I* gring{nullptr};
+    TH2I* gdt{nullptr};
+    TH2I* gbase{nullptr};
+    TH2I* gringdop{nullptr};
+    TH3I* ggrClean{nullptr};
 };
 
 } // namespace Output

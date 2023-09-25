@@ -80,6 +80,21 @@ source_group("" FILES ${SRCS} ${HDRS})
 add_executable(dgSort ${SRCS} ${HDRS})
 
 ###########################################################
+##  Setup include directories
+###########################################################
+# Add this root directory as an include directory so that we can reference
+# our include files relative to it (less ../../../ business)
+target_include_directories(dgSort PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# add the root include directories
+target_include_directories(dgSort SYSTEM PRIVATE ROOT::Core ROOT::RIO ROOT::Tree)
+# now add the external library directory so that we can use the pcg prng
+target_include_directories(dgSort SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/ExtLib)
+# Add the generated file header directory in this way to allow files in the
+# utility directory to access the generated file as if it was in their directory
+target_include_directories(dgSort PRIVATE "${PROJECT_BINARY_DIR}/src/BuildConfig")
+
+
+###########################################################
 ##  Target Linking
 ###########################################################
 # link in ROOT
@@ -87,16 +102,6 @@ target_link_libraries(dgSort ROOT::Core ROOT::RIO ROOT::Hist ROOT::Tree)
 # link in zlib
 target_link_libraries(dgSort ZLIB::ZLIB)
 
-###########################################################
-##  Setup include directories
-###########################################################
-# Add this root directory as an include directory so that we can reference
-# our include files relative to it (less ../../../ business)
-target_include_directories(dgSort PRIVATE ${PROJECT_SOURCE_DIR}/src)
-# Add the generated file header directory in this way to allow files in the
-# utility directory to access the generated file as if it was in their directory
-target_include_directories(dgSort PRIVATE "${PROJECT_BINARY_DIR}/src/BuildConfig")
-target_include_directories(dgSort SYSTEM PRIVATE ROOT::Core ROOT::RIO ROOT::Tree)
 
 if(CLANG_TIDY_EXE)
   set_target_properties(dgSort PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")

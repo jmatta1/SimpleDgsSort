@@ -1,10 +1,10 @@
 /***************************************************************************//**
 ********************************************************************************
 **
-** @author James Till Matta, and Akaa Daniel Ayageakaa et al
+** @author James Till Matta
 ** @date 23 Sep, 2023
 **
-** @copyright Copyright (C) 2023 Oak Ridge National Laboratory
+** @copyright Copyright (C) 2023 James Till Matta
 **
 ********************************************************************************
 *******************************************************************************/
@@ -22,6 +22,7 @@
 // includes from DgsSort
 #include"Utility/EndianHandling.h"
 #include"Utility/Misc.h"
+#include"Calibrator.h"
 
 namespace Reader::DGS
 {
@@ -48,7 +49,7 @@ namespace Reader::DGS
 //        std::cout << "File read error " << fileName << std::endl;
 //        return NULL;
 //    }
-//    //OMG MALLOC EVERY FRICKING TIME??? NO WONDER TORBEN'S CODE IS SLOW _REUSE SHIT MAN!!!_
+//    //OMG MALLOC EVERY FRICKING TIME??? NO WONDER The previous author 'S CODE IS SLOW _REUSE SHIT MAN!!!_
 //    // /insert meme graphic: "I have contained my rage for as long as possible"
 //    if(!(EventBuf = (unsigned int*) malloc(hdr->length)))
 //    {
@@ -105,14 +106,14 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*&
     return true;
 }
 
-// sigh.. another torben special, let's fix this too so I don't shudder when it is called
+// sigh.. another pysicist special, let's fix this too so I don't shudder when it is called
 //int GetEv(unsigned int* TEMP, DGSEVENTNEW* DGS, DGSTRACE* TRACE)
 //{
 //    int  i;
 //    //int  WF;
 //    //unsigned short int  headertype;
 
-// torben is using htobe32 here...
+// The previous author  is using htobe32 here...
 // but he should logically be using be32toh since the value is starting in Big Endian format
 // and is then being converted into host format (little endian on just about everything these days)
 // however, the operation an involution (is its own inverse) so the two function give the same result
@@ -128,7 +129,7 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*&
 //    DGS->event_timestamp        = (unsigned long long int)(htobe32(TEMP[1]) & 0xffffffff);
 //    DGS->event_timestamp       += (((unsigned long long int)(htobe32(TEMP[2]) & 0x0000ffff))  << 32);
 
-// Torben calls the cells of the array words though they are 4 bytes
+// The previous author calls the cells of the array words though they are 4 bytes
 // according to Intel, AMD, ARM, _and_ all the big compiler makers, a word is 2-bytes, 4-byte blocks
 // are double words, aka dwords. an 8-byte block is a quad word (aka qword)
 
@@ -300,7 +301,7 @@ void getEv(uint8_t* buffer, DgsEventNew & evt, DgsTrace & trc, bool readTrace)
             trc.Len += 2;
         }
 
-        // zero out additional samples torben does this with a loop... why?
+        // zero out additional samples the previous author  does this with a loop... why?
         // memset is your _friend_
         if(trc.Len < DgsTraceMaxLen)
         {
@@ -309,5 +310,67 @@ void getEv(uint8_t* buffer, DgsEventNew & evt, DgsTrace & trc, bool readTrace)
     }
 }
 
+bool extractDirtyCoinsFromEvt(DirtyCoincidence& dc, DgsEventNew const& evt, Calibrator& cal, AgnosticSinglesInfo & ad)
+{
+    uint16_t offset = ((evt.board_id - Params::DGS::GsMapBoardOffset) * 10) + evt.chan_id;
+    uint16_t channel = Params::DGS::GsMap[offset] - 1;
+    if(cal.isEnabled(channel))
+    {
+        if(dc.nDirty < MaxDgsNum)
+        {
+            dc.gamma[dc.nDirty].id = channel;
+            // sigh... can't avoid the integer long division here
+            uint16_t detType = Params::DGS::ModMap[evt.chan_id % 10];
+            // this was previously written (event_timestamp - tsFirst)/10^8, but tsFirst is _ALWAYS_ 0 so...
+            ad.eventTime = evt.event_timestamp * Params::DGS::TsToSeconds;
+            ad.channel = channel;
+            ad.ringId = Params::DGS::DetRings[channel];
+            dc.gamma[dc.nDirty].t = evt.event_timestamp;
+            if(detType == Params::DGS::GeTypeDet)
+            {
+                dc.gamma[dc.nDirty].Compton = false;
+                dc.gamma[dc.nDirty].BGO = false;
+                dc.gamma[dc.nDirty].GE = true;
+                ad.deltaDiscEvTime = ((static_cast<double>(evt.event_timestamp & 0x000000003FFFFFFFULL) -
+                                       static_cast<double>(evt.last_disc_timestamp)) *Params::DGS::TsToMicroSeconds);
+                CalInfo info;
+                cal.getEnergies(channel, detType, ad.deltaDiscEvTime, evt.pre_rise_energy, evt.post_rise_energy, info);
+                dc.gamma[dc.nDirty].e = info.energy;
+                ad.uncorEn = info.unCorrEnergy;
+                ad.corrEn = info.energy;
+                ad.baseParam = (info.firstSum - info.poleZeroBase + (channel * 10.0));
+                ++dc.nDirty;
+                return true;
+            }
+            else if(detType == Params::DGS::BgoTypeDet)
+            {
+                dc.gamma[dc.nDirty].Compton = false;
+                dc.gamma[dc.nDirty].BGO = true;
+                dc.gamma[dc.nDirty].GE = false;
+                CalInfo info;
+                cal.getEnergies(channel, detType, ad.deltaDiscEvTime, evt.pre_rise_energy, evt.post_rise_energy, info);
+                dc.gamma[dc.nDirty].e = info.unCorrEnergy;
+                ++dc.nDirty;
+                return false;
+            }
+            return false;
+        }
+        return false;
+    }
+    return false;
+}
+
+void extractCleanCoinsFromDirty(DirtyCoincidence& dc, CleanCoincidence& cc)
+{
+    cc.nClean = 0;
+    double dt, tsum, nprompt;
+    for(unsigned i=0; i<dc.nDirty; ++i)
+    {
+        for(unsigned j=i+1; j<dc.nDirty; ++j)
+        {
+
+        }
+    }
+}
 
 } // namespace Reader::DGS

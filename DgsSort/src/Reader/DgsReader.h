@@ -1,7 +1,7 @@
 /***************************************************************************//**
 ********************************************************************************
 **
-** @author James Till Matta, and Akaa Daniel Ayageakaa et al
+** @author James Till Matta
 ** @date 23 Sep, 2023
 **
 ** @copyright Copyright (C) 2023 Oak Ridge National Laboratory
@@ -168,7 +168,20 @@ static const uint32_t HiSampleMShft = 16;
 /* __contains both raw and */
 /* __processed quantities! */
 
+struct AgnosticSinglesInfo
+{
+    uint16_t channel;
+    uint16_t ringId;
+    uint16_t deltaDiscEvTime;
+    double eventTime;
+    double uncorEn;
+    double corrEn;
+    double baseParam;
+};
 
+/**********************
+ * The structures below are pulled almost verbatim from a previous code
+ **********************/
 struct DgsEvent
 {
     uint16_t chan_id{0};
@@ -260,7 +273,7 @@ struct Particle
 struct Gamma
 {
     uint64_t t{0};
-    float    e{0.0F};
+    double   e{0.0F};
     uint16_t id{0};
     bool     BGO{false};
     bool     GE{false};
@@ -297,7 +310,7 @@ struct CleanCoincidence
     double   tPrompt{0.0};
     uint64_t t[MaxDgsNum]{0};
     uint16_t id[MaxDgsNum]{0};
-    float    e[MaxDgsNum]{0.0F};
+    double   e[MaxDgsNum]{0.0F};
 };
 
 struct Fatima
@@ -392,7 +405,11 @@ struct DssdEvent
 bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader& hdr, uint8_t*& evtBuff, uint64_t& bufferSize);
 void getEv(uint8_t* buffer, DgsEventNew& evt, DgsTrace& trc, bool readTrace);
 
-void extractDirtyEvent(DirtyCoincidence& dc, DgsEvent const& evt);
+// prototype declaration to avoid extra include
+class Calibrator;
+
+bool extractDirtyCoinsFromEvt(DirtyCoincidence& dc, DgsEventNew const& evt, Calibrator & cal, AgnosticSinglesInfo& ad);
+void extractCleanCoinsFromDirty(DirtyCoincidence& dc, CleanCoincidence& cc);
 
 } // namespace Reader::DGS
 

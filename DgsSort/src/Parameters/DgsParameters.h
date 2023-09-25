@@ -1,10 +1,10 @@
 /***************************************************************************//**
 ********************************************************************************
 **
-** @author James Till Matta, and Akaa Daniel Ayageakaa et al
+** @author James Till Matta
 ** @date 23 Sep, 2023
 **
-** @copyright Copyright (C) 2023 Oak Ridge National Laboratory
+** @copyright Copyright (C) 2023 James Till Matta
 **
 ********************************************************************************
 *******************************************************************************/
@@ -23,6 +23,12 @@ namespace Params::DGS
 static const uint32_t NumGsGeDet{110};
 static const uint32_t NumModules{30};
 static const uint32_t NumRings{17};
+
+static const double TsToSeconds{1.0e-8};
+static const double TsToMicroSeconds{1.0e-2};
+
+
+static const uint16_t GsMapBoardOffset{101};
 
 static const uint16_t GsMap[500]{  2,   4,   6,   8,  10,   2,   4,   6,   8,  10,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
                                   12,  40,  16,  18,  20,  12,  40,  16,  18,  20,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -52,9 +58,24 @@ static const uint16_t GsMap[500]{  2,   4,   6,   8,  10,   2,   4,   6,   8,  1
 
 static const uint16_t ModMap[10]{1, 1, 1, 1, 1, 2, 2, 2, 2, 2};
 
+static const uint16_t GeTypeDet = 2;
+static const uint16_t BgoTypeDet = 1;
+
 static const double RingThetas[NumRings]{  17.27465,  31.71747,  37.37737,  50.06504,  58.28253,  69.82033,  79.18768,   80.7096,
                                                90.0,
                                             99.2904, 100.81232, 110.17967, 121.71747, 129.93496, 142.62263, 148.28253, 162.72535};
+
+static const uint16_t DetRings[NumGsGeDet]{ 0,  0,  0,  0,  1,  0,  1,  1,  1,  1,
+                                            2,  2,  2,  2,  3,  2,  3,  3,  3,  3,
+                                            3,  3,  3,  3,  4,  3,  4,  4,  5,  4,
+                                            5,  4,  5,  5,  5,  5,  5,  5,  6,  5,
+                                            6,  5,  7,  6,  7,  6,  7,  6,  8,  7,
+                                            8,  7,  8,  8,  8,  8,  8,  8,  9,  8,
+                                            9,  8, 10,  9, 10,  9, 10,  9, 11, 10,
+                                           11, 10, 11, 11, 11, 11, 11, 11, 12, 11,
+                                           12, 11, 12, 12, 13, 12, 13, 13, 13, 13,
+                                           13, 13, 13, 13, 14, 13, 14, 14, 14, 14,
+                                           15, 15, 15, 15, 16, 15, 16, 16, 16, 16};
 
 static const double DetThetas[NumGsGeDet]{  17.27465,  17.27465,  17.27465,  17.27465,  31.71747,  17.27465,  31.71747,  31.71747,  31.71747,  31.71747,
                                             37.37737,  37.37737,  37.37737,  37.37737,  50.06504,  37.37737,  50.06504,  50.06504,  50.06504,  50.06504,
@@ -80,6 +101,11 @@ static const double DetPhis[NumGsGeDet]{    72,    216,    144,    288,     36, 
                                         130.84, 274.84, 157.16, 301.16,     36, 346.84,    108,    252,    180,    324,
                                             72,    216,    144,    288,     36,    360,    108,    252,    180,    324};
 
+
+static const double MWidthVal = 350.0; // I do not really understand the use for this but it is needed to replicate
+static const double DeltaDiscEvTimeThreshold = 450.0; //Again not fully understanding but I am replicating the previous code
+
+static const double PoleZeroExp = ((350.0 + 100.0 + 25.0) / 350.0);
 
 } // namespace Params::DGS
 

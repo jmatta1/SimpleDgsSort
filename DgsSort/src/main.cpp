@@ -1,10 +1,10 @@
 /***************************************************************************//**
 ********************************************************************************
 **
-** @author James Till Matta, and Akaa Daniel Ayageakaa et al
+** @author James Till Matta
 ** @date 23 Sep, 2023
 **
-** @copyright Copyright (C) 2023 Oak Ridge National Laboratory
+** @copyright Copyright (C) 2023 James Till Matta
 **
 ********************************************************************************
 *******************************************************************************/
@@ -21,9 +21,12 @@
 #include"Output/HistWriter.h"
 #include"Utility/Misc.h"
 #include"Reader/DgsReader.h"
+#include"Reader/Calibrator.h"
 
 
 static const int64_t TimeStampOverlap = 100;
+static const uint64_t ReportInterval = 1048576;
+static const uint64_t ReportIntMask = ReportInterval - 1;
 
 int main(int argc, char* argv[])
 {
@@ -51,22 +54,35 @@ int main(int argc, char* argv[])
     // open the input file
     gzFile inputFile = gzopen(clo.dgsFileName.c_str(), "rb");
 
-    Output::HistWriter writer(clo.rootFileName, clo.rootFileOptions);
+    // open the calibration file
+    Reader::DGS::Calibrator cal(clo.calFileName, clo.recoilBeta);
 
+    // create our output system, do it with new so that we can delete it (forcing the output) before
+    // we output "Done!" at the end, (otherwise the destructor would always go off right before return 0;)
+    Output::HistWriter* writer = new Output::HistWriter(clo.rootFileName, clo.rootFileOptions);
+
+    //create our initial event buffer
     uint64_t bufferSize = Utility::CacheLineAlignment; // initial size of 64 bytes
     uint8_t* eventBuffer = Utility::cacheAlignedAlloc(bufferSize);
 
-    Reader::DGS::GebHeader header;
-    Reader::DGS::DgsEventNew event;
-    Reader::DGS::DgsTrace trace;
-
-    // torben or shaofei used uint64_t (well the equivalent) but then you are constantly converting
+    // timestamp holders to build our coincidences
+    // thre previous author used uint64_t (well the equivalent) but then you are constantly converting
     // and if the timestampes are every 10ns then even int64_t takes you out ~2922 years
     int64_t tsEarly = 0;
     int64_t tsLate = 0;
 
-    Reader::DGS::CleanCoincidence cleanEvt;
-    Reader::DGS::DirtyCoincidence dirtyEvt;
+    // structures to store data
+    Reader::DGS::GebHeader header;
+    Reader::DGS::DgsEventNew event;
+    Reader::DGS::DgsTrace trace;
+    Reader::DGS::CleanCoincidence clean;
+    Reader::DGS::DirtyCoincidence dirty;
+    Reader::DGS::AgnosticSinglesInfo ad;
+
+    // some counters so we can tell the user what we are doing
+    uint64_t gsEventCount = 0;
+    uint64_t outputCount = 0;
+    // loop over all events in the file
     while(Reader::DGS::getEvBuf(inputFile, clo.dgsFileName, header, eventBuffer, bufferSize))
     {
         // as long as we get a new event, keep looping
@@ -81,18 +97,50 @@ int main(int argc, char* argv[])
             // shaofei used llabs, but the one provided by C++ will adapt itself to its arguments, so use it
             if(std::abs(tsLate - tsEarly) < TimeStampOverlap)
             {
-                // this event is within our current time coincidence window, so add it to the "dirty event"
+                // this event is within our current pulse window, so add it to the "dirty event"
                 // all events are "presumed dirty" and the clean separated from the dirty at a later step
-                // this was somewhat confusing until I figured it out
-
+                // this was somewhat confusing in the previous author's code so I am writing it here for sure
+                Reader::DGS::extractDirtyCoinsFromEvt(dirty, event, cal, ad);
+                // now increment the singles info that is agnostic to clean vs dirty
+                writer->incrementAgnosticSinglesData(ad);
             }
             else
             {
-
+                // if we are here the new event does not match our coincidence window, process what we have
+                // then clear things and start again
+                if(dirty.nDirty >= 1)
+                {
+                    // extract any clean events
+                    Reader::DGS::extractCleanCoinsFromDirty(dirty, clean);
+                    // now increment the dirty histograms
+                    writer->incrementDirtyEvents(dirty);
+                }
+                // now see if we extracted any clean events
+                if(clean.nClean > 1)
+                {
+                    // we did! increment histograms
+                    writer->incrementCleanEvents(clean);
+                }
+            }
+            ++gsEventCount;
+            // the previous author use modulus here. if you are working with powers of 2
+            // bitwise mask is the same as modulus and does not invoke integer long division
+            // integer long division is an _expensive_ instruction, taking 40 to 60 cycles,
+            // and, unlike other almost all other instructions, not pipelined, so you cannot start
+            // another integer long division until the last one is done, unlike pipelined instructions
+            // where you can start a new one every cycle even if the old one has not completed yet.
+            if((gsEventCount & ReportIntMask) == 0)
+            {
+                ++outputCount;
+                std::cout << "Processed: " << gsEventCount << " - (" << outputCount << " M) Events\n" << std::endl;
             }
         }
 
     }
-
+    // delete the writer (forcing the output of everything
+    delete writer;
+    //close the input file
+    gzclose(inputFile);
+    std::cout << "Done!\n" << std::flush;
     return 0;
 }
