@@ -403,6 +403,7 @@ struct DssdEvent
 };
 
 bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader& hdr, uint8_t*& evtBuff, uint64_t& bufferSize);
+void parseEvHdr(GebHeader& hdr, uint8_t * evtBuff);
 void getEv(uint8_t* buffer, DgsEventNew& evt, DgsTrace& trc, bool readTrace);
 
 // prototype declaration to avoid extra include

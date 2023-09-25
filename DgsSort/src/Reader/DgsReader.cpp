@@ -108,6 +108,16 @@ bool getEvBuf(gzFile fp, std::string const& fileName, GebHeader & hdr, uint8_t*&
     return true;
 }
 
+void parseEvHdr(GebHeader& hdr, uint8_t* evtBuff)
+{
+    size_t offset = 0;
+    std::memcpy(&hdr.type,      evtBuff + offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    std::memcpy(&hdr.length,    evtBuff + offset, sizeof(int32_t));
+    offset += sizeof(int32_t);
+    std::memcpy(&hdr.timestamp, evtBuff + offset, sizeof(uint64_t));
+}
+
 // sigh.. another pysicist special, let's fix this too so I don't shudder when it is called
 //int GetEv(unsigned int* TEMP, DGSEVENTNEW* DGS, DGSTRACE* TRACE)
 //{

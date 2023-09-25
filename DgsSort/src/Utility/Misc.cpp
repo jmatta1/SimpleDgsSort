@@ -29,5 +29,10 @@ uint8_t* cacheAlignedAlloc(uint64_t& size)
     return static_cast<uint8_t*>(std::aligned_alloc(CacheLineAlignment, size));
 }
 
+uint8_t* cacheAlignedAllocGoodSize(uint64_t size)
+{
+    return static_cast<uint8_t*>(std::aligned_alloc(CacheLineAlignment, size));
+}
+
 } // namespace Utility
 

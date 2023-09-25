@@ -24,6 +24,7 @@ static const uint64_t CacheLineAlignment = 64;
 static const uint64_t CacheLineAlignmentMask = 63;
 
 uint8_t* cacheAlignedAlloc(uint64_t & size);
+uint8_t* cacheAlignedAllocGoodSize(uint64_t size);
 
 } // namespace Utility
 
